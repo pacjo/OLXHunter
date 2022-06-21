@@ -1,4 +1,5 @@
 unidecode
+argparse
 requests
 requests_cache
 bs4
