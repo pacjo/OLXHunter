@@ -1,5 +1,6 @@
 import csv
 import requests
+import requests_cache
 from bs4 import BeautifulSoup
 
 main_url = "https://www.olx.pl"
@@ -9,6 +10,10 @@ title_class = "css-v3vynn-Text"
 price_class = "css-wpfvmn-Text"
 ad_url_class = "css-1bbgabe"
 search_url = "https://www.olx.pl/d/elektronika/telefony/smartfony-telefony-komorkowe/q-note-10-pro"
+output_file = "data.csv"
+
+# Enable caching
+requests_cache.install_cache('cache')
 
 # Get 1st page
 page = requests.get(search_url)
@@ -24,21 +29,25 @@ ads = soup.find_all(class_=ad_class)
 
 for n in range(len(ads)):
     try:
-        print(f'{n}: =========================================================================')
+        print(f'\n{n}: =========================================================================')
 
-        ad_title = ads[n].find(class_=title_class).text
-        ad_url = main_url + ads[n].find(class_=ad_url_class)["href"]  # somewhat of a url ?     -- to fix
+        ad = {
+            "title": ads[n].find(class_=title_class).text,
+            "url": main_url + ads[n].find(class_=ad_url_class)["href"],
+            "price": ads[n].find(class_=price_class).text,
+            "negotiable": False,    # temp, changed later
+            "exchangeable": False   # temp, changed later
+        }
+        ad["negotiable"] = True if ad["price"].find("do negocjacji") > -1 else False
+        ad["exchangeable"] = True if ad["price"].find("Zamienię") > -1 else False
+        ad["price"] = ad["price"][0:ad["price"].find("do negocjacji")] if ad["price"].find("do negocjacji") > -1 else ad["price"]
 
-        ad_price = ads[n].find(class_=price_class).text
-        negotiable = True if ad_price.find("do negocjacji") > -1 else False
-        exchange = True if ad_price.find("Zamienię") > -1 else False
-        ad_price = ad_price[0:ad_price.find("do negocjacji")] if ad_price.find("do negocjacji") > -1 else ad_price
-
-        print(ad_title)
-        print(f"{ad_price}   negocjacje: {negotiable}   zamiana: {exchange}")
-        print(ad_url)
+        print(ad)
     except AttributeError:
-        # print("THERE WAS AN AD!!!")
         pass    # do nothing (good enough solution)
+
+    # with open(output_file) as csv_file:
+    #     csv_reader = csv.reader(csv_file, delimiter=',')
+
 
 # Save data to file - also TODO
