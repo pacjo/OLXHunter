@@ -1,6 +1,7 @@
 # Custom
 cache.sqlite
-# data.csv
+data.csv
+credentials.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
