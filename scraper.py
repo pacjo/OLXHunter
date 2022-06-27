@@ -22,8 +22,8 @@ parser.add_argument('browser', nargs='?', default="chrome",
                     help='Browser that should be used for this session (default: chrome)')
 parser.add_argument('-dh', '--disable_headless', action='store_true',
                     help='Disables headless mode')
-parser.add_argument('-dn', '--disable_notifications', action='store_true',
-                    help='Stops script showing system notifications')
+parser.add_argument('-o', '--output', type=str, required=False, default="data", 
+                    help='Specify the output file filename')
 parser.add_argument('-d', '--debug', action='store_true',
                     help='Shows debug messages like refresh information')
 
@@ -99,13 +99,14 @@ for i in range(MEGA_AD["num_of_observed_ads"]):
     num_of_ads_full = driver.find_elements(By.CLASS_NAME, "fleft")[non_search_buttons + 2*i + 1].get_attribute("innerText")
     ad = {
         "query": driver.find_elements(By.CLASS_NAME, "is-query")[i].get_attribute("innerText"),
-        "number_of_ads": num_of_ads_full[num_of_ads_full.find(':') + 2:num_of_ads_full.find(':') + 3]
+        "number_of_ads": num_of_ads_full[num_of_ads_full.find(':') + 2:num_of_ads_full.find(':') + 3],
+        "url": driver.find_elements(By.CLASS_NAME, "searchLink")[i].get_attribute("href")
     }
 
     print(ad["query"] + ": " + ad["number_of_ads"])
     MEGA_AD[i] = ad
 
 print(MEGA_AD)
-file = open("data.json", 'w')
+file = open(f"{args.output}.json", 'w')
 file.write(json.dumps(MEGA_AD))
 file.close()

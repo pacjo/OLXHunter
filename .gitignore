@@ -2,6 +2,7 @@
 cache.sqlite
 data.csv
 data.json
+last_data.json
 credentials.json
 
 # Byte-compiled / optimized / DLL files
