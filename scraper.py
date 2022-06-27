@@ -1,81 +1,102 @@
-import csv
+import os
+import time
+import json
+import signal
+import inspect
 import argparse
-import requests
-import requests_cache
-import unidecode
-from bs4 import BeautifulSoup
+from datetime import datetime
+from selenium import webdriver
+from selenium.webdriver.common.by import By
+from selenium.webdriver.support import expected_conditions
+from colorama import init, Fore
+from plyer import notification
+
+login_url = "https://www.olx.pl/konto/"
+saved_searches_url = "https://www.olx.pl/obserwowane/wyszukiwania/"
+profile_url = "https://www.olx.pl/d/mojolx/#login"
+non_search_buttons = 4
 
 # Arguments (argparse) options
-parser = argparse.ArgumentParser(description='')
-parser.add_argument('url', type=str, help='url used for scrapint (without any filters')
-parser.add_argument('-o', '--output', type=str, required=False, default="data", help='Specify the output file filename')
+parser = argparse.ArgumentParser(description='OLX deals watcher build with Selenium')
+parser.add_argument('browser', nargs='?', default="chrome",
+                    help='Browser that should be used for this session (default: chrome)')
+parser.add_argument('-dh', '--disable_headless', action='store_true',
+                    help='Disables headless mode')
+parser.add_argument('-dn', '--disable_notifications', action='store_true',
+                    help='Stops script showing system notifications')
+parser.add_argument('-d', '--debug', action='store_true',
+                    help='Shows debug messages like refresh information')
 
 args = parser.parse_args()
 
-main_url = "https://www.olx.pl"
-ad_class = "css-19ucd76"
-page_numbers_class = "pagination-item"
-title_class = "css-v3vynn-Text"
-price_class = "css-wpfvmn-Text"
-ad_info_class = "css-p6wsjo-Text"
-ad_url_class = "css-1bbgabe"
-search_url = args.url        # e.g. https://www.olx.pl/d/elektronika/telefony/smartfony-telefony-komorkowe/q-note-10-pro
-output_file = f"{args.output}.csv"
+# Cosmetic
+init(autoreset=True)        # initialise Colorama
+os.system('cls||clear')     # clear terminal before executing
 
-# Enable caching
-requests_cache.install_cache('cache')
+if (args.debug == True):
+    print(Fore.BLUE + "Debugging is enabled, remove \"--debug\" or \"-d\" to disable it")
+else:
+    os.environ['WDM_LOG_LEVEL'] = '0'
 
-# Get 1st page
-page = requests.get(search_url)
-soup = BeautifulSoup(page.content, 'html.parser')
+# WebDriver initialization
+match args.browser:
+    case "chrome":      # Chrome
+        from selenium.webdriver.chrome.service import Service
+        from webdriver_manager.chrome import ChromeDriverManager
 
-# Calculate number of pages
-pages = soup.find_all(class_=page_numbers_class)
-number_of_pages = pages[len(pages) - 1]['aria-label'][5:10]
+        options = webdriver.ChromeOptions()
+        options.add_experimental_option("excludeSwitches", ["enable-logging"])
+        options.add_argument("--mute-audio")
+        if (args.disable_headless == True):
+            options.add_argument("window-size=900,900")
+        else:
+            options.add_argument('--headless')
+            options.add_argument('--disable-gpu')
+        driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+        print(Fore.GREEN + "WebDriver started")
 
-# Scrape ads
-ads = soup.find_all(class_=ad_class)
+    case "firefox":      # Firefox
+        from selenium.webdriver.firefox.service import Service
+        from webdriver_manager.firefox import GeckoDriverManager
 
-# Prepare CSV file
-with open(output_file, mode="w", newline='') as csv_file:
-    fieldnames = ["id", "title", "price", "city", "post_date", "negotiable", "exchangeable", "description", "url"]
-    writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-    writer.writeheader()
+        options = webdriver.FirefoxOptions()
+        options.add_argument("--mute-audio")
+        if (args.disable_headless == True):
+            options.add_argument("window-size=900,900")
+        else:
+            options.add_argument('--headless')
+            options.add_argument('--disable-gpu')
+        driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()), options=options)
+        print(Fore.GREEN + "WebDriver started")
 
-ads_count = 0
-for page_number in range(int(number_of_pages)):
-# for page_number in range(1):
-    page = requests.get(f"{search_url}/?page={page_number + 1}")
-    soup = BeautifulSoup(page.content, 'html.parser')
+# Log into to OLX
+print(Fore.CYAN + "Attempting a login...")
+driver.get(login_url)
 
-    for n in range(len(ads)):
-        try:
-            print(f"\n{ads_count}: ======================================================================== - page: {page_number}, ad: {n}")
+file = open(f'credentials.json', 'r')
+load = json.load(file)
+username = load.get('user')
+password = load.get('password')
+file.close()
 
-            ad = {
-                "title": unidecode.unidecode(ads[n].find(class_=title_class).text),
-                "url": main_url + ads[n].find(class_=ad_url_class)["href"],
-                "price": ads[n].find(class_=price_class).text,
-                "city": unidecode.unidecode(ads[n].find(class_=ad_info_class).text[0:ads[n].find(class_=ad_info_class).text.find('-') - 1]),
-                "post_date": unidecode.unidecode(ads[n].find(class_=ad_info_class).text[ads[n].find(class_=ad_info_class).text.find('-') + 2:len(ads[n].find(class_=ad_info_class).text)]),
-                "negotiable": False,    # temp, changed later
-                "exchangeable": False   # temp, changed later
-            }
-            ad["negotiable"] = True if ad["price"].find("do negocjacji") > -1 else False
-            ad["exchangeable"] = True if ad["price"].find("Zamienię") > -1 else False
-            ad["price"] = ad["price"][0:ad["price"].find("do negocjacji")] if ad["negotiable"] == True else ad["price"]
-            ad["price"] = 0 if ad["exchangeable"] == True else ad["price"]
-            ad["price"] = ad["price"][0:ad["price"].find("zł") - 1] # remove "zł"
+driver.find_elements(By.ID, "onetrust-accept-btn-handler")[0].click()
+driver.find_elements(By.ID, "userEmail")[0].send_keys(username)
+driver.find_elements(By.ID, "userPass")[0].send_keys(password)
+driver.find_elements(By.ID, "se_userLogin")[0].click()
 
-            print(ad)
+time.sleep(2)   # Wait for login to finish, good enough
+# while expected_conditions.url_to_be(profile_url) != True: 
+#     time.sleep(0.5)
+print(Fore.CYAN + "Login complete")
 
-            # Save data to CSV
-            with open(output_file, mode="a", newline='') as csv_file:
-                fieldnames = ["id", "title", "price", "city", "post_date", "negotiable", "exchangeable", "description", "url"]
-                writer = csv.DictWriter(csv_file, fieldnames=fieldnames)
-                writer.writerow({"id": ads_count,"title": ad["title"], "price": ad["price"], "city": ad["city"], "post_date": ad["post_date"], "negotiable": ad["negotiable"], "exchangeable": ad["exchangeable"], "url":ad["url"]})
+driver.get(saved_searches_url)
+monitored_searches = len(driver.find_elements(By.CLASS_NAME, "observedsearch"))
 
-            ads_count += 1
+print(Fore.LIGHTMAGENTA_EX + "Observed searches: ")
+for i in range(monitored_searches):
+    num_of_ads_full = driver.find_elements(By.CLASS_NAME, "fleft")[non_search_buttons + 2*i + 1].get_attribute("innerText")
+    number_of_ads = num_of_ads_full[num_of_ads_full.find(':') + 2:num_of_ads_full.find(':') + 3]
+    query = driver.find_elements(By.CLASS_NAME, "is-query")[i].get_attribute("innerText")
+    print(query + ": " + number_of_ads)
 
-        except AttributeError:
-            pass    # do nothing (good enough solution)
+# time.sleep(3600)
