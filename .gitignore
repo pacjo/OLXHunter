@@ -1,6 +1,7 @@
 # Custom
 cache.sqlite
 data.csv
+data.json
 credentials.json
 
 # Byte-compiled / optimized / DLL files
