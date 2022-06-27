@@ -1,5 +1,2 @@
-unidecode
+selenium
 argparse
-requests
-requests_cache
-bs4
