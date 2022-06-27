@@ -90,13 +90,22 @@ time.sleep(2)   # Wait for login to finish, good enough
 print(Fore.CYAN + "Login complete")
 
 driver.get(saved_searches_url)
-monitored_searches = len(driver.find_elements(By.CLASS_NAME, "observedsearch"))
+MEGA_AD = {
+    "num_of_observed_ads": len(driver.find_elements(By.CLASS_NAME, "observedsearch")),
+}
 
-print(Fore.LIGHTMAGENTA_EX + "Observed searches: ")
-for i in range(monitored_searches):
+print(Fore.LIGHTMAGENTA_EX + "Observed searches (" + str(MEGA_AD["num_of_observed_ads"]) + "): ")
+for i in range(MEGA_AD["num_of_observed_ads"]):
     num_of_ads_full = driver.find_elements(By.CLASS_NAME, "fleft")[non_search_buttons + 2*i + 1].get_attribute("innerText")
-    number_of_ads = num_of_ads_full[num_of_ads_full.find(':') + 2:num_of_ads_full.find(':') + 3]
-    query = driver.find_elements(By.CLASS_NAME, "is-query")[i].get_attribute("innerText")
-    print(query + ": " + number_of_ads)
+    ad = {
+        "query": driver.find_elements(By.CLASS_NAME, "is-query")[i].get_attribute("innerText"),
+        "number_of_ads": num_of_ads_full[num_of_ads_full.find(':') + 2:num_of_ads_full.find(':') + 3]
+    }
 
-# time.sleep(3600)
+    print(ad["query"] + ": " + ad["number_of_ads"])
+    MEGA_AD[i] = ad
+
+print(MEGA_AD)
+file = open("data.json", 'w')
+file.write(json.dumps(MEGA_AD))
+file.close()
