@@ -9,7 +9,6 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
 from colorama import init, Fore
-from plyer import notification
 
 login_url = "https://www.olx.pl/konto/"
 saved_searches_url = "https://www.olx.pl/obserwowane/wyszukiwania/"
@@ -22,6 +21,8 @@ parser.add_argument('browser', nargs='?', default="chrome",
                     help='Browser that should be used for this session (default: chrome)')
 parser.add_argument('-dh', '--disable_headless', action='store_true',
                     help='Disables headless mode')
+parser.add_argument('-v', '--verbose',
+                    help='Disables headless mode')
 parser.add_argument('-o', '--output', type=str, required=False, default="data", 
                     help='Specify the output file filename')
 parser.add_argument('-d', '--debug', action='store_true',
@@ -31,7 +32,7 @@ args = parser.parse_args()
 
 # Cosmetic
 init(autoreset=True)        # initialise Colorama
-os.system('cls||clear')     # clear terminal before executing
+if (args.verbose): os.system('cls||clear')     # clear terminal before executing
 
 if (args.debug == True):
     print(Fore.BLUE + "Debugging is enabled, remove \"--debug\" or \"-d\" to disable it")
@@ -53,7 +54,7 @@ match args.browser:
             options.add_argument('--headless')
             options.add_argument('--disable-gpu')
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
-        print(Fore.GREEN + "WebDriver started")
+        if (args.verbose): print(Fore.GREEN + "WebDriver started")
 
     case "firefox":      # Firefox
         from selenium.webdriver.firefox.service import Service
@@ -67,10 +68,10 @@ match args.browser:
             options.add_argument('--headless')
             options.add_argument('--disable-gpu')
         driver = webdriver.Firefox(service=Service(GeckoDriverManager().install()), options=options)
-        print(Fore.GREEN + "WebDriver started")
+        if (args.verbose): print(Fore.GREEN + "WebDriver started")
 
 # Log into to OLX
-print(Fore.CYAN + "Attempting a login...")
+if (args.verbose): print(Fore.CYAN + "Attempting a login...")
 driver.get(login_url)
 
 file = open(f'credentials.json', 'r')
@@ -87,14 +88,14 @@ driver.find_elements(By.ID, "se_userLogin")[0].click()
 time.sleep(2)   # Wait for login to finish, good enough
 # while expected_conditions.url_to_be(profile_url) != True: 
 #     time.sleep(0.5)
-print(Fore.CYAN + "Login complete")
+if (args.verbose): print(Fore.CYAN + "Login complete")
 
 driver.get(saved_searches_url)
 MEGA_AD = {
     "num_of_observed_ads": len(driver.find_elements(By.CLASS_NAME, "observedsearch")),
 }
 
-print(Fore.LIGHTMAGENTA_EX + "Observed searches (" + str(MEGA_AD["num_of_observed_ads"]) + "): ")
+if (args.verbose): print(Fore.LIGHTMAGENTA_EX + "Observed searches (" + str(MEGA_AD["num_of_observed_ads"]) + "): ")
 for i in range(MEGA_AD["num_of_observed_ads"]):
     num_of_ads_full = driver.find_elements(By.CLASS_NAME, "fleft")[non_search_buttons + 2*i + 1].get_attribute("innerText")
     ad = {
@@ -103,10 +104,10 @@ for i in range(MEGA_AD["num_of_observed_ads"]):
         "url": driver.find_elements(By.CLASS_NAME, "searchLink")[i].get_attribute("href")
     }
 
-    print(ad["query"] + ": " + ad["number_of_ads"])
+    if (args.verbose): print(ad["query"] + ": " + ad["number_of_ads"])
     MEGA_AD[i] = ad
 
-print(MEGA_AD)
+if (args.verbose): print(MEGA_AD)
 file = open(f"{args.output}.json", 'w')
 file.write(json.dumps(MEGA_AD))
 file.close()
