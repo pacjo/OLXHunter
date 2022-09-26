@@ -1,6 +1,7 @@
 # Custom
 cache.sqlite
 # data.csv
+output.pickle
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
