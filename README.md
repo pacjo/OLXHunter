@@ -1,3 +1,9 @@
 # OLXHunter
 
-Currently most development is happening in `selenium` branch. If you know how to handle Login with Facebook with `BeautifulSoup` please reach out.
+this is not done yet
+
+to use (might change later):
+`python main.py <olx search url>`
+
+to export to csv:
+`python export.py`
