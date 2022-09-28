@@ -8,7 +8,6 @@ parser = argparse.ArgumentParser(description='')
 parser.add_argument('-o', '--output', type=str, required=False, default="data", help='Specify the output file filename (without extension)')
 parser.add_argument('-i', '--input', type=str, required=False, default="data", help='Specify the input file (with extension)')      # not implemented
 parser.add_argument('-t', '--type', type=str, required=False, default="csv", help='Specify the output type (csv...)')               # not implemented
-parser.add_argument('-v', '--verbose', action='store_true', help="Print command output (for testing)")
 args = parser.parse_args()
 
 # Prepare CSV file

@@ -11,6 +11,7 @@ parser.add_argument('url', type=str, help='url used for scrapint (without any fi
 parser.add_argument('--min', type=int, default=0, help="Minimal price of an item")
 parser.add_argument('--max', type=int, default=10000000000, help="Maximal price of an item")
 parser.add_argument('-r', '--regex', type=str, default="\"(xiaomi|redmi)? ?note ?(9|10|11) ?pro\"gmi", help="Regex used for validation of ad titles")
+parser.add_argument('-et', '--export_type', type=str, required=False, default="csv", help='Specify the output type (csv...)') 
 parser.add_argument('-v', '--verbose', action='store_true', help="Print command output (for testing)")
 args = parser.parse_args()
 
@@ -21,3 +22,9 @@ os.system(f"python scraper.py {args.url} -o {args.output} --verbose") if(args.ve
 # Clean up the results
 print("Cleaning results")
 os.system(f"python cleanup.py -o {args.output} --verbose") if(args.verbose) else os.system(f"python cleanup.py -o {args.output}")
+
+# (Optional) export to file
+print("Exporting data to file")
+match args.export_type:
+    case "csv": 
+        os.system(f"python export.py -i {args.output} -t {args.export_type}")
